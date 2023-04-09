@@ -49,13 +49,37 @@ const mountEle = (container, node) => {
             mountEle(el, node.children[i]);
         }
     }
+    container.$el = el;
     container.appendChild(el);
 };
 
-const render = (container, node, newNode) => {
+// 对比diff算法的入口
+const patch = (oldNode, newNode) => {
+
+};
+
+const render = (container, newNode) => {
     // 这里由于我们只有ele，为了专心研究diff；
     // 其实这里还有一层关于 dom 的类型判断（判断svg、html、portal、component节点的区别）
-    mountEle(container, node);
+    if (container.node) {
+        // 如果存在旧节点 + 新节点
+        if (newNode) {
+            patch(container.node);
+            container.node = newNode;
+        } else {
+            // 有旧节点 + 没有新节点 => （说明要删除节点了）
+            container.removeChild(container.$el);
+            container.node = null;
+        }
+    } else {
+        // 如果不存在旧节点
+        if (newNode) {
+            mountEle(container, newNode);
+            container.node = newNode;
+        }
+        // 如果新节点也不存在
+        // do nothing.
+    }
 };
 
 console.log('CHILDREN_FLAG', CHILDREN_FLAG);
@@ -63,12 +87,13 @@ console.log('CHILDREN_FLAG', CHILDREN_FLAG);
 // 目标：创建真实 dom ul - li*5
 
 // 5个li节点
+const arr = 'ABCDE';
 var liMap = {};
-for (let i = 0; i < 5; i++) {
+for (let i = 0; i < arr.length; i++) {
     liMap[i] = new VNode({
         tag: 'li',
-        key: i,
-        data: `我是第${i}个节点`
+        key: arr[i],
+        data: `${arr[i]}`
     });
 }
 // ul外层节点 + 5个li节点【旧的】
@@ -81,3 +106,5 @@ var oldNode = new VNode({
 const oRoot = document.getElementById('root');
 
 render(oRoot, oldNode);
+
+// 如果说新的顺序是 'EABDC'
