@@ -19,8 +19,12 @@ const mountEle = (container, node) => {
 }
 
 // 对比diff算法的入口
-const patch = (oldNode, newNode) => {
 
+// 依次判断对应节点的相关属性
+// 判断 children 的时候使用 diff 算法？
+
+const patch = (oldNode, newNode) => {
+    console.log('oldNode', oldNode, newNode)
 }
 
 export const render = (container, newNode) => {
@@ -46,5 +50,3 @@ export const render = (container, newNode) => {
         // do nothing.
     }
 }
-
-console.log('CHILDREN_FLAG', CHILDREN_FLAG)

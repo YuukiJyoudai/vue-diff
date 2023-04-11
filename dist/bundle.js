@@ -54,8 +54,12 @@ const mountEle = (container, node) => {
 };
 
 // 对比diff算法的入口
-const patch = (oldNode, newNode) => {
 
+// 依次判断对应节点的相关属性
+// 判断 children 的时候使用 diff 算法？
+
+const patch = (oldNode, newNode) => {
+    console.log('oldNode', oldNode, newNode);
 };
 
 const render = (container, newNode) => {
@@ -64,7 +68,7 @@ const render = (container, newNode) => {
     if (container.node) {
         // 如果存在旧节点 + 新节点
         if (newNode) {
-            patch(container.node);
+            patch(container.node, newNode);
             container.node = newNode;
         } else {
             // 有旧节点 + 没有新节点 => （说明要删除节点了）
@@ -82,8 +86,6 @@ const render = (container, newNode) => {
     }
 };
 
-console.log('CHILDREN_FLAG', CHILDREN_FLAG);
-
 // 目标：创建真实 dom ul - li*5
 
 // 5个li节点
@@ -96,15 +98,34 @@ for (let i = 0; i < arr.length; i++) {
         data: `${arr[i]}`
     });
 }
+const oldList = [...Array(5).fill('').map((item, index) => liMap[index])];
 // ul外层节点 + 5个li节点【旧的】
 var oldNode = new VNode({
     tag: 'ul',
-    children: [
-        ...Array(5).fill('').map((item, index) => liMap[index])
-    ]
+    children: oldList
 });
 const oRoot = document.getElementById('root');
 
 render(oRoot, oldNode);
 
 // 如果说新的顺序是 'EABDC'
+// 乱序函数
+const sort = (str, arr) => {
+    const res = [].concat(arr);
+    return res.sort((a, b) => {
+        const keyPre = str.indexOf(a.key);
+        const keyNext = str.indexOf(b.key);
+        // 为负值的则在前面
+        return keyPre - keyNext
+    })
+};
+
+// 从 ABCED 变为 EABDC
+const newList = sort('EABDC', oldList);
+const newNode = new VNode({
+    tag: 'ul',
+    children: newList
+});
+
+// 替换 DOM 的入口
+render(oRoot, newNode);
