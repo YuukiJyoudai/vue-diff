@@ -3,7 +3,6 @@
 // 本文章仅为了研究 diff 算法，所以 node-type 仅为 ul、li(html元素)
 // 不考虑除了ul、li以外的元素
 // 不考虑vnode中的样式、事件
-
 const CHILDREN_FLAG = {
     NO_CHILD: 0,
     SINGLE_CHILD: 1,
@@ -35,7 +34,8 @@ class VNode {
     }
 }
 
-const mountEle = (container, node) => {
+// render之mount函数
+const mount = (container, node) => {
     if (!container || !node) {
         return
     }
@@ -46,48 +46,35 @@ const mountEle = (container, node) => {
     const len = node.children.length;
     if (len) {
         for (let i = 0; i < len; i++) {
-            mountEle(el, node.children[i]);
+            mount(el, node.children[i]);
         }
     }
-    container.$el = el;
+    node.$el = el;
     container.appendChild(el);
 };
-
-// 对比diff算法的入口
-
-// 依次判断对应节点的相关属性
-// 判断 children 的时候使用 diff 算法？
-
-const patch = (oldNode, newNode) => {
-    console.log('oldNode', oldNode, newNode);
-};
-
+// render主体函数
 const render = (container, newNode) => {
-    // 这里由于我们只有ele，为了专心研究diff；
-    // 其实这里还有一层关于 dom 的类型判断（判断svg、html、portal、component节点的区别）
     if (container.node) {
-        // 如果存在旧节点 + 新节点
         if (newNode) {
-            patch(container.node, newNode);
+            // 1.旧节点存在，新节点存在【对比更新】
+            container.removeChild(container.node.$el);
+            mount(container, newNode);
             container.node = newNode;
         } else {
-            // 有旧节点 + 没有新节点 => （说明要删除节点了）
+            // 2.旧节点存在，新节点不存在【删除】
             container.removeChild(container.$el);
             container.node = null;
         }
     } else {
-        // 如果不存在旧节点
         if (newNode) {
-            mountEle(container, newNode);
+            // 3.旧节点不存在，新节点存在【新增】
+            mount(container, newNode);
             container.node = newNode;
         }
-        // 如果新节点也不存在
-        // do nothing.
     }
 };
 
 // 目标：创建真实 dom ul - li*5
-
 // 5个li节点
 const arr = 'ABCDE';
 var liMap = {};
@@ -105,6 +92,19 @@ var oldNode = new VNode({
     children: oldList
 });
 const oRoot = document.getElementById('root');
+// 使用 mutationObserver 查看 dom 操作的事件
+const observer = new MutationObserver((mutationList) => {
+    console.log('mutationList', mutationList);
+});
+
+observer.observe(oRoot, {
+    // 监听属性值的变化
+    attributes: true,
+    // 监听节点的新增与删除
+    childList: true,
+    // 以 target 为根节点的整个子树
+    subtree: true
+});
 
 render(oRoot, oldNode);
 
@@ -128,4 +128,11 @@ const newNode = new VNode({
 });
 
 // 替换 DOM 的入口
-render(oRoot, newNode);
+setTimeout(() => {
+    performance.mark('start');
+    render(oRoot, newNode);
+    setTimeout(() => {
+        performance.mark('end');
+        console.log(performance.measure('test', 'start', 'end'));
+    }, 0);
+}, 500);

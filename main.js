@@ -1,7 +1,6 @@
 // 目标：创建真实 dom ul - li*5
-import {VNode} from './src/dom'
+import { VNode } from './src/dom'
 import { render } from './src/render'
-
 // 5个li节点
 const arr = 'ABCDE'
 var liMap = {}
@@ -19,6 +18,19 @@ var oldNode = new VNode({
     children: oldList
 })
 const oRoot = document.getElementById('root')
+// 使用 mutationObserver 查看 dom 操作的事件
+const observer = new MutationObserver((mutationList) => {
+    console.log('mutationList', mutationList)
+})
+
+observer.observe(oRoot, {
+    // 监听属性值的变化
+    attributes: true,
+    // 监听节点的新增与删除
+    childList: true,
+    // 以 target 为根节点的整个子树
+    subtree: true
+})
 
 render(oRoot, oldNode)
 
@@ -42,4 +54,11 @@ const newNode = new VNode({
 })
 
 // 替换 DOM 的入口
-render(oRoot, newNode)
+setTimeout(() => {
+    performance.mark('start')
+    render(oRoot, newNode)
+    setTimeout(() => {
+        performance.mark('end')
+        console.log(performance.measure('test', 'start', 'end'))
+    }, 0)
+}, 500)
