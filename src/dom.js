@@ -1,7 +1,6 @@
 // 本文章仅为了研究 diff 算法，所以 node-type 仅为 ul、li(html元素)
 // 不考虑除了ul、li以外的元素
 // 不考虑vnode中的样式、事件
-
 export const CHILDREN_FLAG = {
     NO_CHILD: 0,
     SINGLE_CHILD: 1,
