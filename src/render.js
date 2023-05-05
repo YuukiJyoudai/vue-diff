@@ -58,28 +58,54 @@ const patchChildren = (oldC, oldF, newC, newF, container) => {
             // 旧单节点（省略）
             break
         case CHILDREN_FLAG.MULTI_CHILD:
-            // 旧多节点（【 DIFF 】【 DIFF 】【 DIFF 】【 DIFF 】【 DIFF 】）
-            // 目标是【尽可能通过移动元素来解决，而不是 删除、添加 元素】
-            let lastIndex = 0
-            for (let i = 0; i < newC.length; i++) {
-                const nextNode = newC[i]
-                for (let j = 0; j < oldC.length; j++) {
-                    const preNode = oldC[j]
-                    // 寻找相同节点： 更新数据 + 移动节点
-                    if (nextNode.key === preNode.key) {
-                        // 这里用新的虚拟dom，去替代了旧的虚拟dom，并且最后会实装在 container（真实dom上）
-                        // 【更新数据】，新虚拟dom ==> 旧虚拟dom，两者之间的差异！！所谓的DIFF！
-                        patch(preNode, nextNode, container)
-                        if (j < lastIndex) {
-                            // 【移动节点】如果位置小于 lastIndex，则说明旧节点的位置需要移动
-                            const refNode = newC[i - 1].$el.nextSibling
-                            container.insertBefore(preNode.$el, refNode)
-                        } else {
-                            // 不需要移动的情况：如果位置大于 lastIndex，则说明是按顺序的（从小到大）
-                            lastIndex = j
-                        }
-                        break
+            // 这里是我们相对于单端节点对比要修改的代码部分
+            let oldStartIndex = 0
+            let newStartIndex = 0
+            let oldEndIndex = oldC.length - 1
+            let newEndIndex = newC.length - 1
+            let oldStartNode = oldC[oldStartIndex]
+            let oldEndNode = oldC[oldEndIndex]
+            let newStartNode = newC[newStartIndex]
+            let newEndNode = newC[newEndIndex]
+            // 双端节点比较
+            while (newStartIndex < newEndIndex && oldStartIndex < oldEndIndex) {
+                if (newStartNode.key === oldStartNode.key) {
+                    // 最开始的新节点 === 最开始的旧节点 => 位置没发生变化
+                    patch(oldStartNode, newStartNode, container)
+                    oldStartNode = oldC[++oldStartIndex]
+                    newStartNode = newC[++newStartIndex]
+                } else if (newEndNode.key === oldEndNode.key) {
+                    // 最末尾的新节点 === 最末尾旧节点 => 位置没发生变化
+                    patch(oldEndNode, newEndNode, container)
+                    oldEndNode = oldC[--oldEndIndex]
+                    newEndNode = newC[--newEndIndex]
+                } else if (newEndNode.key === oldStartNode.key) {
+                    // 最末尾的新节点 === 最开始的旧节点 => 最开始的旧节点位置变化了，要移动到最后
+                    patch(oldStartNode, newEndNode, container)
+                    container.insertBefore(oldStartNode.$el, oldEndNode.$el.nextSibling)
+                    oldStartNode = oldC[++oldStartIndex]
+                    newEndNode = newC[--newEndIndex]
+                } else if (newStartNode.key === oldEndNode.key) {
+                    // 最开始的新节点 === 最末尾的旧节点 => 最末尾的旧节点位置发生了变化，要移动到最前
+                    patch(oldEndNode, newStartNode, container)
+                    container.insertBefore(oldEndNode.$el, oldStartNode.$el)
+                    newStartNode = newC[++newStartIndex]
+                    oldEndNode = oldC[--oldEndIndex]
+                } else {
+                    // 双端没有对比到，判断一下是否是新增加点
+                    // 是新增则进行必要的创建【注意这里也是找 newStartNode，和单端一样都是以新列表为准】
+                    // 不是新增的则直接用 findIndex 去找到
+                    const index = oldC.findIndex(node => node.key === newStartNode.key)
+                    if (index > 0) {
+                        const moveTarget = oldC[index]
+                        patch(moveTarget, newStartNode, container)
+                        container.insertBefore(moveTarget.$el, oldStartNode)
+                        // 我们把旧节点移动到前面去了，但列表的匹配还要记录，这里要有个占位方便后续判断
+                        oldC[index] = null
+                    } else {
+                        mount(container, newStartNode)
                     }
+                    newStartNode = newC[++newStartIndex]
                 }
             }
             break
