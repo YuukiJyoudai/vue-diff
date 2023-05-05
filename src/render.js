@@ -16,13 +16,38 @@ export const mount = (container, node) => {
     node.$el = el
     container.appendChild(el)
 }
+// render之patch
+const _isSameNode = (oldN, newN) => {
+    return oldN.key === newN.key && oldN.tag === newN.tag
+}
+const patch = (oldN, newN, container) => {
+    container.node = newN
+    // 预处理，不是相同的，直接 remove + mount 就可以了
+    if (!_isSameNode(oldN, newN)) {
+        container.removeChild(container.$el)
+        mount(container, newN)
+        return
+    }
+    const el = newN.$el = oldN.$el
+    // 更新data
+    if (oldN.data !== newN.data) {
+        el.innerText = newN.data
+    }
+    // 这里对于children不使用diff，直接批量删除、批量添加【不进行复用】
+    for (let i = 0; i < oldN.children.length; i++) {
+        el.removeChild(oldN.children[i].$el)
+    }
+    for (let i = 0; i < newN.children.length; i++) {
+        mount(el, newN.children[i])
+    }
+}
 // render主体函数
 export const render = (container, newNode) => {
     if (container.node) {
         if (newNode) {
             // 1.旧节点存在，新节点存在【对比更新】
-            container.removeChild(container.node.$el)
-            mount(container, newNode)
+            patch(container.node, newNode, container)
+            // 更新children
             container.node = newNode
         } else {
             // 2.旧节点存在，新节点不存在【删除】
